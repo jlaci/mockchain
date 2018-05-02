@@ -1,0 +1,27 @@
+<html>
+<head>
+    <title>MockChain benchmark</title>
+    <script type="text/javascript" src="node_modules/jquery/dist/jquery.min.js"></script>
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container">
+    <h1>Mockchain mining benchmark</h1>
+    <button onclick="run()">Run benchmark</button>
+    <div>Hash rate: <span id="out"></span> hash/s</div>
+</div>
+
+<script>
+  var worker = new Worker("bench-worker.js");
+
+  function run() {
+    $('#out').html("running...");
+    worker.postMessage({});
+  }
+
+  worker.onmessage = function (e) {
+    $('#out').html(e.data);
+  }
+</script>
+</body>
+</html>
