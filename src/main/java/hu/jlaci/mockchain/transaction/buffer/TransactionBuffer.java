@@ -23,7 +23,7 @@ public class TransactionBuffer {
 
     private List<TransactionListener> listeners = new ArrayList<>();
 
-    public synchronized void addTransaction(Transaction transaction) {
+    public synchronized int addTransaction(Transaction transaction) {
         if (validationService.signatureValid(transaction)) {
             log.info("Got valid transaction {}, storing and notifying listeners", transaction);
             transactions.put(transaction.getTransactionId(), transaction);
@@ -32,9 +32,12 @@ public class TransactionBuffer {
             for (TransactionListener transactionListener: listeners) {
                 transactionListener.receivedNewTransaction(transaction);
             }
+
         } else {
             log.warn("Got invalid transaction {}", transaction);
         }
+
+        return transactions.size();
     }
 
     public synchronized void transactionMined(UUID id) {

@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -26,10 +28,13 @@ public class MiningService implements TransactionListener {
 
     private BlockValidationService blockValidationService;
 
+    private List<MiningListener> listeners;
+
     public MiningService(TransactionBuffer transactionBuffer, BlockStorageService blockStorage, BlockValidationService blockValidationService) {
         this.transactionBuffer = transactionBuffer;
         this.blockStorage = blockStorage;
         this.blockValidationService = blockValidationService;
+        this.listeners = new ArrayList<>();
     }
 
     @Getter
@@ -49,7 +54,7 @@ public class MiningService implements TransactionListener {
         block.setNonce(0);
         block.setTransactions(transactionBuffer.getFirst(Protocol.MAX_TRANSACTIONS_PER_BLOCK));
         this.minedBlock = block;
-        minedBlockChanged();
+        minedBlockChanged(block);
     }
 
     public void clientMindedBlock(Block block) {
@@ -60,9 +65,11 @@ public class MiningService implements TransactionListener {
         }
     }
 
-    public void minedBlockChanged() {
+    public void minedBlockChanged(Block block) {
         log.info("Mined block changed, notifying clients!");
-        //TODO: notify miners about the change!
+        for (MiningListener miningListener : listeners) {
+            miningListener.blockChanged(block);
+        }
     }
 
     @Override
@@ -71,7 +78,7 @@ public class MiningService implements TransactionListener {
             assembleBlock();
         } else if (minedBlock.getTransactions().size() < Protocol.MAX_TRANSACTIONS_PER_BLOCK) {
             minedBlock.getTransactions().add(transaction);
-            minedBlockChanged();
+            minedBlockChanged(minedBlock);
         }
     }
 }

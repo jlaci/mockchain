@@ -2,6 +2,7 @@ package hu.jlaci.mockchain.mining;
 
 import hu.jlaci.mockchain.block.Block;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

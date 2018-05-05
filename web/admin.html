@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mockchain Admin</title>
+  <script type="text/javascript" src="node_modules/jquery/dist/jquery.min.js"></script>
+  <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+</head>
+<body>
+
+  <div class="container">
+    <h1>Mockchain admin</h1>
+
+    <div class="row">
+      <div class="col-md-3">
+        <button>Set rate</button>
+        <input id="rate">
+      </div>
+      <div class="col-md-3">
+        <button onclick="startSending()">Start sending</button>
+      </div>
+      <div class="col-md-3">
+        <span>State: <span id="state"></span></span>
+      </div>
+      <div class="col-md-3">
+        <button onclick="stopSending()">Stop sending</button>
+      </div>
+    </div>
+
+    <pre id="out"></pre>
+  </div>
+
+  <script>
+    var rate = 1;
+    var state = "not sending";
+    var interval;
+    var sent = 0;
+
+    function send() {
+        $.ajax({
+          type: 'POST',
+          url: '/transaction'
+        }).then(function() {
+          $("#out").append(sent + " sent <br/>");
+          sent++;
+        });
+    }
+
+    function startSending() {
+      if (state === "not sending") {
+        state = "sending";
+        interval = setInterval(send, 1000 / rate);
+        $("#state").html(state);
+      }
+    }
+
+    function stopSending() {
+      if (state === "sending") {
+        state = "not sending";
+        clearInterval(interval);
+        $("#state").html(state);
+      }
+    }
+
+    $(function () {
+      $("#rate").val(rate);
+      $("#state").html(state);
+    })
+
+  </script>
+
+
+</body>
+</html>

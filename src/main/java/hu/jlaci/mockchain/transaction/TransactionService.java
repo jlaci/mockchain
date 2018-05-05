@@ -20,14 +20,14 @@ public class TransactionService {
         this.transactionBuffer = transactionBuffer;
     }
 
-    public void createTestTransaction() {
+    public int createTestTransaction() {
         Transaction transaction = new Transaction();
         transaction.setTransactionId(UUID.randomUUID());
         transaction.setOriginator(nodeConfig.getId());
         transaction.setMessage("Test transaction message " + transaction.getTransactionId());
         transaction.setSignature(new byte[] {(byte) nodeConfig.getSignature()});
         log.info("Created test transaction {}", transaction);
-        transactionBuffer.addTransaction(transaction);
+        return transactionBuffer.addTransaction(transaction);
     }
 
 }
