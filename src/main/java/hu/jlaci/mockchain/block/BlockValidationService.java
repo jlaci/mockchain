@@ -22,6 +22,11 @@ public class BlockValidationService {
             sb.append("0");
         }
 
+        if (block.getBlockId().equals(lastBlock.getBlockId())) {
+            log.warn("Already mined block!");
+            return false;
+        }
+
         if (!block.getHash().startsWith(sb.toString())) {
             log.warn("Bad hash!");
             return false;

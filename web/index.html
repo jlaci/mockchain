@@ -7,18 +7,20 @@
   <body>
     <div class="container">
       <h1>Mined block</h1>
-      <button onclick="startMining()">Start mining</button>
-      <button onclick="stopMining()">Stop mining</button>
+      <button id="startBtn" onclick="startMining()">Start mining</button>
+      <button id="stopBtn" onclick="stopMining()">Stop mining</button>
       <pre id="out">
       </pre>
     </div>
 
     <script>
+      var stopped = false;
+
       // Configuration
       var config = {
         wsUrl: "ws://localhost:8080//block-changed",
-        maxTries: 10000000,
-        hardness: 4
+        hardness: 4,
+        yieldTime: 1000
       };
 
       var startString = "";
@@ -27,40 +29,50 @@
       }
       config.startString = startString;
 
-
       //Worker
       var worker = new Worker("miner.js");
       worker.onmessage = function (e) {
-        if (e.data !== "failed") {
-          $('#out').html(JSON.stringify(e.data, null, 4));
+        if (e.data === "failed") {
+          $('#out').append("failed<br/>");
+        } else {
+          $('#out').append("Mined block " + e.data.blockId + "(" + e.data.transactions.length + ")<br/>");
           $.ajax({
             type: 'POST',
             url: '/mining/mined-block',
-            dataType: 'application/json',
+            contentType: 'application/json',
             data: JSON.stringify(e.data)
           }).then(function() {
-
+              //$('#out').append("Sent mined block.<br/>");
           });
-        } else {
-          $('#out').html("failed");
         }
       };
 
       function stopMining() {
+        stopped = true;
         worker.postMessage("stop");
-        $('#out').html("Stopped mining");
+        $('#out').append("Stopped mining.<br/>");
+        $('#startBtn').prop('disabled', false);
+        $('#endBtn').prop('disabled', true);
       }
 
       function startMining() {
-        $('#out').html("Started mining, waiting for block...");
+        stopped = false;
+        $('#startBtn').prop('disabled', true);
+        $('#endBtn').prop('disabled', false);
+
+        $('#out').append("Started mining, waiting for block.<br/>");
         var ws = new WebSocket(config.wsUrl);
-        ws.onmessage = function(data){
-          var param = {
-            block: data.data,
-            config: config
-          };
-          $('#out').html("Mining block: " + JSON.stringify(JSON.parse(data.data), null, 4));
-          worker.postMessage(param);
+        ws.onmessage = function (data) {
+          if (stopped === false) {
+            var block = JSON.parse(data.data);
+            var param = {
+              block: block,
+              config: config
+            };
+            $('#out').append('Mining block: ' + block.blockId + '(' + block.transactions.length + ')<br/>');
+            worker.postMessage(param);
+            mining = true;
+          }
         };
       }
     </script>

@@ -19,7 +19,6 @@ public class TransactionController {
 
     @PostMapping
     public ResponseEntity addTestTransaction() {
-        transactionService.createTestTransaction();
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.createTestTransaction());
     }
 }

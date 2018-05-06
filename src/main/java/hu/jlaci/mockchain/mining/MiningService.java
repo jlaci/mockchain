@@ -47,19 +47,27 @@ public class MiningService implements TransactionListener {
     }
 
     public void assembleBlock() {
-        log.info("Assembling new block to mine");
-        Block block = new Block();
-        block.setBlockId(UUID.randomUUID());
-        block.setPreviousHash(blockStorage.getLastHash());
-        block.setNonce(0);
-        block.setTransactions(transactionBuffer.getFirst(Protocol.MAX_TRANSACTIONS_PER_BLOCK));
-        this.minedBlock = block;
-        minedBlockChanged(block);
+        List<Transaction> transactions = transactionBuffer.getFirst(Protocol.MAX_TRANSACTIONS_PER_BLOCK);
+        if (transactions.size() == Protocol.MAX_TRANSACTIONS_PER_BLOCK) {
+            log.info("Assembling new block to mine");
+            Block block = new Block();
+            block.setBlockId(UUID.randomUUID());
+            block.setPreviousHash(blockStorage.getLastHash());
+            block.setNonce(0);
+            block.setTransactions(transactions);
+            this.minedBlock = block;
+            log.info("New block is {}", block.getBlockId());
+            minedBlockChanged(block);
+        } else {
+            log.info("No enough transactions to assemble block");
+            this.minedBlock = null;
+        }
+
     }
 
     public void clientMindedBlock(Block block) {
         if (blockValidationService.blockValid(block, blockStorage.getLastBlock())) {
-            log.info("Client successfully mined block!");
+            log.info("Client successfully mined block {}!", block.getBlockId());
             blockStorage.storeBlock(block);
             assembleBlock();
         }
@@ -72,13 +80,14 @@ public class MiningService implements TransactionListener {
         }
     }
 
+    public void registerListener(MiningListener miningListener) {
+        listeners.add(miningListener);
+    }
+
     @Override
     public void receivedNewTransaction(Transaction transaction) {
         if (minedBlock == null) {
             assembleBlock();
-        } else if (minedBlock.getTransactions().size() < Protocol.MAX_TRANSACTIONS_PER_BLOCK) {
-            minedBlock.getTransactions().add(transaction);
-            minedBlockChanged(minedBlock);
         }
     }
 }

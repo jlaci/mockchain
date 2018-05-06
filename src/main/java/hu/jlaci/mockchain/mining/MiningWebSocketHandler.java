@@ -26,6 +26,7 @@ public class MiningWebSocketHandler extends TextWebSocketHandler implements Mini
     public MiningWebSocketHandler(ObjectMapper objectMapper, MiningService miningService) {
         this.objectMapper = objectMapper;
         this.miningService = miningService;
+        miningService.registerListener(this);
     }
 
     @Override

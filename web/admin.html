@@ -13,7 +13,7 @@
 
     <div class="row">
       <div class="col-md-3">
-        <button>Set rate</button>
+        <button onclick="setRate()">Set rate</button>
         <input id="rate">
       </div>
       <div class="col-md-3">
@@ -40,14 +40,15 @@
         $.ajax({
           type: 'POST',
           url: '/transaction'
-        }).then(function() {
-          $("#out").append(sent + " sent <br/>");
+        }).then(function(data) {
+          $("#out").append(sent + ' sent, buffer size: ' +  data + '<br/>');
           sent++;
         });
     }
 
     function startSending() {
       if (state === "not sending") {
+        rate = $('#rate').val();
         state = "sending";
         interval = setInterval(send, 1000 / rate);
         $("#state").html(state);
@@ -60,6 +61,12 @@
         clearInterval(interval);
         $("#state").html(state);
       }
+    }
+    
+    function setRate() {
+      rate = $('#rate').val();
+      clearInterval(interval);
+      interval = setInterval(send, 1000 / rate);
     }
 
     $(function () {

@@ -4,40 +4,50 @@ function hashTransaction(t) {
   return sha256(t.message + t.transactionId + t.originator);
 }
 
-function mine(b, config) {
-  var transactionHash = '';
-  for (var i = 0; i < b.transactions.length; i++) {
-    transactionHash += hashTransaction(b.transactions[i]);
-  }
+var b;
+var config;
+var stopped = false;
 
-  var done = false;
-  var tries = 0;
-  while (!done && mining) {
-    tries++;
-    if (config.maxTries !== -1 && tries > config.maxTries) {
-      done = true;
-      return "failed";
-    }
+var transactionHash;
 
+function mineSome(amount) {
+  for (var i = 0; i < amount; i++) {
     b.nonce++;
     var hash = sha256(b.blockId + b.previousHash + b.nonce + transactionHash);
     if (hash.startsWith(config.startString)) {
-      return b;
+      return true;
     }
   }
 
-  return "failed";
+  return false;
 }
 
-var mining = false;
+function mine() {
+  if (stopped === false) {
+    var done = mineSome(config.yieldTime);
+    if (done === true) {
+      postMessage(b);
+    } else {
+      setTimeout(mine, 0);
+    }
+  }
+}
 
-worker = function (message) {
-  if (message === "stop") {
-    mining = false;
-    postMessage("failed");
+onmessage = function (message) {
+  if (message.data === "stop") {
+    stopped = true;
+    postMessage("stopped");
   } else {
-    mining = true;
-    var block = mine(message.data.block, message.data.config);
-    postMessage(block)
+    stopped = false;
+
+    b = message.data.block;
+    b.nonce = Math.floor(Math.random() * 10000000);
+    transactionHash = '';
+    for (var i = 0; i < b.transactions.length; i++) {
+      transactionHash += hashTransaction(b.transactions[i]);
+    }
+
+    config = message.data.config;
+    mine();
   }
 };
