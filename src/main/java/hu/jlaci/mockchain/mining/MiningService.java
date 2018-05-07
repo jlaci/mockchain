@@ -46,7 +46,7 @@ public class MiningService implements TransactionListener {
         transactionBuffer.subscribe(this);
     }
 
-    public void assembleBlock() {
+    public synchronized void assembleBlock() {
         List<Transaction> transactions = transactionBuffer.getFirst(Protocol.MAX_TRANSACTIONS_PER_BLOCK);
         if (transactions.size() == Protocol.MAX_TRANSACTIONS_PER_BLOCK) {
             log.info("Assembling new block to mine");
@@ -65,7 +65,7 @@ public class MiningService implements TransactionListener {
 
     }
 
-    public void clientMindedBlock(Block block) {
+    public synchronized void clientMindedBlock(Block block) {
         if (blockValidationService.blockValid(block, blockStorage.getLastBlock())) {
             log.info("Client successfully mined block {}!", block.getBlockId());
             blockStorage.storeBlock(block);
@@ -73,7 +73,7 @@ public class MiningService implements TransactionListener {
         }
     }
 
-    public void minedBlockChanged(Block block) {
+    private void minedBlockChanged(Block block) {
         log.info("Mined block changed, notifying clients!");
         for (MiningListener miningListener : listeners) {
             miningListener.blockChanged(block);
@@ -85,9 +85,15 @@ public class MiningService implements TransactionListener {
     }
 
     @Override
-    public void receivedNewTransaction(Transaction transaction) {
+    public synchronized void receivedNewTransaction(Transaction transaction) {
         if (minedBlock == null) {
             assembleBlock();
         }
+    }
+
+    public synchronized void reset() {
+        log.warn("Resetting chain!");
+        minedBlock = null;
+        blockStorage.reset();
     }
 }

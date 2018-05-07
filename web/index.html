@@ -6,7 +6,13 @@
   </head>
   <body>
     <div class="container">
-      <h1>Mined block</h1>
+      <h1>Mockchain test miner</h1>
+      <h4>Mined blocks: <span id="mined-blocks"></span></h4>
+      <h4>Contribution time: <span id="contribution-time"></span> s</h4>
+      <h4>Time spent mining: <span id="time-spent-mining"></span> s</h4>
+      <h4>Average hash/block: <span id="avg-hash-per-block"></span></h4>
+      <h4>Average hashrate: <span id="avg-hash-rate"></span> / s</h4>
+
       <button id="startBtn" onclick="startMining()">Start mining</button>
       <button id="stopBtn" onclick="stopMining()">Stop mining</button>
       <pre id="out">
@@ -14,12 +20,19 @@
     </div>
 
     <script>
+      var miniedBlockCounter = 0;
+      var hashOperations = 0;
+      var timeSpentMining = 0;
+
       var stopped = false;
+
+      var startTime = null;
+      var endTime = null;
 
       // Configuration
       var config = {
         wsUrl: "ws://localhost:8080//block-changed",
-        hardness: 4,
+        hardness: 3,
         yieldTime: 1000
       };
 
@@ -35,12 +48,25 @@
         if (e.data === "failed") {
           $('#out').append("failed<br/>");
         } else {
-          $('#out').append("Mined block " + e.data.blockId + "(" + e.data.transactions.length + ")<br/>");
+          endTime = new Date();
+
+          miniedBlockCounter++;
+          hashOperations += e.data.hashes;
+          timeSpentMining += e.data.time;
+
+          var block = e.data.block;
+          $('#out').append('Mined block ' + block.blockId + '(' + block.transactions.length + ') in ' + e.data.hashes + ' hashes<br/>');
+          $('#mined-blocks').html(miniedBlockCounter);
+          $('#time-spent-mining').html(timeSpentMining / 1000);
+          $('#avg-hash-per-block').html(hashOperations / miniedBlockCounter);
+          $('#avg-hash-rate').html(hashOperations / (timeSpentMining / 1000));
+          $('#contribution-time').html((endTime.getTime() - startTime.getTime()) / 1000);
+
           $.ajax({
             type: 'POST',
             url: '/mining/mined-block',
             contentType: 'application/json',
-            data: JSON.stringify(e.data)
+            data: JSON.stringify(block)
           }).then(function() {
               //$('#out').append("Sent mined block.<br/>");
           });
@@ -63,6 +89,11 @@
         $('#out').append("Started mining, waiting for block.<br/>");
         var ws = new WebSocket(config.wsUrl);
         ws.onmessage = function (data) {
+
+          if (startTime === null) {
+            startTime = new Date();
+          }
+
           if (stopped === false) {
             var block = JSON.parse(data.data);
             var param = {
@@ -71,7 +102,6 @@
             };
             $('#out').append('Mining block: ' + block.blockId + '(' + block.transactions.length + ')<br/>');
             worker.postMessage(param);
-            mining = true;
           }
         };
       }

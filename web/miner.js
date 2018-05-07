@@ -7,11 +7,14 @@ function hashTransaction(t) {
 var b;
 var config;
 var stopped = false;
+var hashes = 0;
+var startTime = null;
 
 var transactionHash;
 
 function mineSome(amount) {
   for (var i = 0; i < amount; i++) {
+    hashes++;
     b.nonce++;
     var hash = sha256(b.blockId + b.previousHash + b.nonce + transactionHash);
     if (hash.startsWith(config.startString)) {
@@ -24,9 +27,18 @@ function mineSome(amount) {
 
 function mine() {
   if (stopped === false) {
+    if (startTime === null) {
+      startTime = new Date();
+    }
+
     var done = mineSome(config.yieldTime);
     if (done === true) {
-      postMessage(b);
+      postMessage({
+        block: b,
+        hashes: hashes,
+        time: new Date().getTime() - startTime.getTime()
+      });
+      startTime = null;
     } else {
       setTimeout(mine, 0);
     }
@@ -43,6 +55,7 @@ onmessage = function (message) {
     b = message.data.block;
     b.nonce = Math.floor(Math.random() * 10000000);
     transactionHash = '';
+    hashes = 0;
     for (var i = 0; i < b.transactions.length; i++) {
       transactionHash += hashTransaction(b.transactions[i]);
     }

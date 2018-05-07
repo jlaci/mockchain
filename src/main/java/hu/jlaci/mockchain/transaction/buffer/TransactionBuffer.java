@@ -60,4 +60,9 @@ public class TransactionBuffer {
         listeners.add(listener);
     }
 
+    public void reset() {
+        log.warn("Resetting chain!");
+        transactions.clear();
+        transactionOrder.clear();
+    }
 }

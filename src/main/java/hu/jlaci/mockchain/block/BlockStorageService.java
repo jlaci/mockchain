@@ -65,4 +65,12 @@ public class BlockStorageService {
     public String getLastHash() {
         return getLastBlock().getHash();
     }
+
+    public void reset() {
+        log.warn("Resetting chain!");
+        Block genesisBlock = blockChain.get(0);
+        blockChain.clear();
+        blockChain.add(genesisBlock);
+        transactionBuffer.reset();
+    }
 }
