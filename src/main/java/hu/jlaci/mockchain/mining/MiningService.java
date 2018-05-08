@@ -30,6 +30,8 @@ public class MiningService implements TransactionListener {
 
     private List<MiningListener> listeners;
 
+    private boolean reset = false;
+
     public MiningService(TransactionBuffer transactionBuffer, BlockStorageService blockStorage, BlockValidationService blockValidationService) {
         this.transactionBuffer = transactionBuffer;
         this.blockStorage = blockStorage;
@@ -46,7 +48,12 @@ public class MiningService implements TransactionListener {
         transactionBuffer.subscribe(this);
     }
 
-    public synchronized void assembleBlock() {
+    public void assembleBlock() {
+        if (reset) {
+            log.info("Reset in progress, discarding assemble block request");
+            return;
+        }
+
         List<Transaction> transactions = transactionBuffer.getFirst(Protocol.MAX_TRANSACTIONS_PER_BLOCK);
         if (transactions.size() == Protocol.MAX_TRANSACTIONS_PER_BLOCK) {
             log.info("Assembling new block to mine");
@@ -65,7 +72,12 @@ public class MiningService implements TransactionListener {
 
     }
 
-    public synchronized void clientMindedBlock(Block block) {
+    public void clientMindedBlock(Block block) {
+        if (reset) {
+            log.info("Reset in progress, discarding mined block");
+            return;
+        }
+
         if (blockValidationService.blockValid(block, blockStorage.getLastBlock())) {
             log.info("Client successfully mined block {}!", block.getBlockId());
             blockStorage.storeBlock(block);
@@ -74,6 +86,11 @@ public class MiningService implements TransactionListener {
     }
 
     private void minedBlockChanged(Block block) {
+        if (reset) {
+            log.info("Reset in progress");
+            return;
+        }
+
         log.info("Mined block changed, notifying clients!");
         for (MiningListener miningListener : listeners) {
             miningListener.blockChanged(block);
@@ -85,15 +102,21 @@ public class MiningService implements TransactionListener {
     }
 
     @Override
-    public synchronized void receivedNewTransaction(Transaction transaction) {
+    public void receivedNewTransaction(Transaction transaction) {
+        if (reset) {
+            log.info("Reset in progress, discarding new transaction");
+        }
+
         if (minedBlock == null) {
             assembleBlock();
         }
     }
 
-    public synchronized void reset() {
+    public void reset() {
         log.warn("Resetting chain!");
+        reset = true;
         minedBlock = null;
         blockStorage.reset();
+        reset = false;
     }
 }

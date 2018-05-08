@@ -9,6 +9,7 @@ var config;
 var stopped = false;
 var hashes = 0;
 var startTime = null;
+var sleeps = 0;
 
 var transactionHash;
 
@@ -29,6 +30,7 @@ function mine() {
   if (stopped === false) {
     if (startTime === null) {
       startTime = new Date();
+      sleeps = 0;
     }
 
     var done = mineSome(config.yieldTime);
@@ -40,7 +42,8 @@ function mine() {
       });
       startTime = null;
     } else {
-      setTimeout(mine, 0);
+      setTimeout(mine, config.waitTime);
+      sleeps++;
     }
   }
 }

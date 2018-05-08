@@ -11,6 +11,8 @@ import java.util.*;
 @Slf4j
 public class TransactionBuffer {
 
+    private boolean reset;
+
     private TransactionValidationService validationService;
 
     public TransactionBuffer(TransactionValidationService validationService) {
@@ -23,7 +25,12 @@ public class TransactionBuffer {
 
     private List<TransactionListener> listeners = new ArrayList<>();
 
-    public synchronized int addTransaction(Transaction transaction) {
+    public int addTransaction(Transaction transaction) {
+        if (reset) {
+            log.info("Reset in progress, discarding added transaction");
+            return 0;
+        }
+
         if (validationService.signatureValid(transaction)) {
             log.info("Got valid transaction {}, storing and notifying listeners", transaction);
             transactions.put(transaction.getTransactionId(), transaction);
@@ -40,12 +47,22 @@ public class TransactionBuffer {
         return transactions.size();
     }
 
-    public synchronized void transactionMined(UUID id) {
+    public void transactionMined(UUID id) {
+        if (reset) {
+            log.info("Reset in progress, discarding mined transaction");
+            return;
+        }
+
         transactions.remove(id);
         transactionOrder.remove(id);
     }
 
-    public synchronized List<Transaction> getFirst(int number) {
+    public List<Transaction> getFirst(int number) {
+        if (reset) {
+            log.info("Reset in progress, returning emtpy list.");
+            return Collections.emptyList();
+        }
+
         int amount = Math.min(number, transactionOrder.size());
         List<Transaction> result = new ArrayList<>(amount);
 
@@ -62,7 +79,9 @@ public class TransactionBuffer {
 
     public void reset() {
         log.warn("Resetting chain!");
+        reset = true;
         transactions.clear();
         transactionOrder.clear();
+        reset = false;
     }
 }

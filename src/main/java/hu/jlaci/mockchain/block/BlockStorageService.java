@@ -19,6 +19,8 @@ public class BlockStorageService {
 
     private BlockValidationService validationService;
 
+    private boolean reset;
+
     public BlockStorageService(TransactionBuffer transactionBuffer, BlockValidationService validationService) {
         this.transactionBuffer = transactionBuffer;
         this.validationService = validationService;
@@ -38,6 +40,11 @@ public class BlockStorageService {
     }
 
     public void storeBlock(Block block) {
+        if (reset) {
+            log.info("Reset in progress, discarding stored block");
+            return;
+        }
+
         if (validationService.blockValid(block, getLastBlock())) {
             log.info("Block is valid, appending");
             blockChain.add(block);
@@ -68,9 +75,11 @@ public class BlockStorageService {
 
     public void reset() {
         log.warn("Resetting chain!");
+        reset = true;
         Block genesisBlock = blockChain.get(0);
         blockChain.clear();
         blockChain.add(genesisBlock);
         transactionBuffer.reset();
+        reset = false;
     }
 }
